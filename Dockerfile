@@ -1,17 +1,16 @@
-# Stage 1: Build
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+# Stage 1: Build (Using Java 21)
+FROM maven:3.9.9-eclipse-temurin-21 AS build
 WORKDIR /app
 COPY pom.xml .
 COPY src ./src
 RUN mvn clean package -DskipTests
 
-# Stage 2: Run (Optimized for 512MB RAM)
-FROM eclipse-temurin:17-jre-alpine
+# Stage 2: Run (Using Java 21 JRE, Optimized for Render Free Tier)
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 8080
 
-# CRITICAL: Limit Heap memory to 350MB so it fits in Render's 512MB container
-# If we don't do this, Render will kill the app for using too much memory.
+# Limit memory to avoid crashing on Render Free Tier (512MB limit)
 ENTRYPOINT ["java", "-Xms256m", "-Xmx350m", "-jar", "app.jar"]
