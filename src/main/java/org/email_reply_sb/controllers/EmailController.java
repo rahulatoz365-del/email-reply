@@ -41,8 +41,14 @@ public class EmailController {
         });
     }
 
-    @PostMapping(value="/stream", produces= MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> streamReply(@RequestBody EmailRequest emailRequest) {
-        return openRouterAIService.streamEmailReply(emailRequest);
+   @PostMapping("/generate")
+public ResponseEntity<EmailResponse> generateReply(@RequestBody @Valid EmailRequest emailRequest) {
+    try {
+        String reply = openRouterAIService.generateEmailReply(emailRequest);
+        return ResponseEntity.ok(EmailResponse.success(reply, emailRequest.getTone()));
+    } catch (Exception e) {
+        log.error("Error generating reply: {}", e.getMessage());
+        return ResponseEntity.ok(EmailResponse.error(e.getMessage()));
     }
+}
 }
