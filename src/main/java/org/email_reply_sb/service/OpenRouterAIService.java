@@ -30,26 +30,29 @@ public class OpenRouterAIService {
         this.objectMapper = objectMapper;
     }
 
-    public Flux<String> streamEmailReply(EmailRequest emailRequest) {
-        String fullUrl=baseurl+"/chat/completions";
-        String prompt=buildPrompt(emailRequest);
-        Map<String,Object> requestBody=buildRequestBody(prompt);
-        requestBody.put("stream",true);
-        return webClient.post()
+    public String generateEmailReply(EmailRequest emailRequest) {
+    String fullUrl = baseurl + "/chat/completions";
+    String prompt = buildPrompt(emailRequest);
+    Map<String, Object> requestBody = buildRequestBody(prompt);
+    requestBody.put("stream", false); // Non-streaming
+
+    try {
+        String response = webClient.post()
                 .uri(fullUrl)
                 .header("Authorization", "Bearer " + apikey)
                 .header("Content-Type", "application/json")
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
                 .header("HTTP-Referer", "http://localhost:8080")
                 .bodyValue(requestBody)
                 .retrieve()
-                .bodyToFlux(String.class)
-                .flatMap(this::parseStreamChunk) // Parse every chunk
-                .onErrorResume(e -> {
-                    log.error("Streaming error: {}", e.getMessage());
-                    return Flux.empty();
-                });
+                .bodyToMono(String.class)
+                .block();
+
+        return parseFullResponse(response);
+    } catch (Exception e) {
+        log.error("Error calling OpenRouter: {}", e.getMessage());
+        throw new RuntimeException("Failed to generate email reply: " + e.getMessage());
     }
+}
     private String buildPrompt(EmailRequest emailRequest){
         String tone= getToneDesc(emailRequest.getTone());
         StringBuilder prompt=new StringBuilder();
@@ -57,7 +60,7 @@ public class OpenRouterAIService {
         prompt.append("Instructions.\n");
         prompt.append("- Write only the email reply body,no subject line.\n");
         prompt.append("- Tone: ").append(tone).append("\n");
-        prompt.append("- Keep it balanced neither too short nor to lengthy.And keep it relevant.\n");
+        prompt.append("- Keep it a bit lengthy dont put unnecessary words but keep it relevant\n");
         prompt.append("- Do not include any explanations,metadata or phrases like 'Here's your reply'\n");
         prompt.append("- Start Directly with the greeting or response.\n");
         prompt.append("- Match the language of the original email.\n\n");
@@ -109,33 +112,22 @@ public class OpenRouterAIService {
         requestBody.put("top_p",0.95);
         return requestBody;
     }
-    private Flux<String> parseStreamChunk(String chunk) {
-        if (chunk == null || chunk.trim().isEmpty() || chunk.contains("[DONE]")) {
-            return Flux.empty();
+    private String parseFullResponse(String response) {
+    try {
+        JsonNode root = objectMapper.readTree(response);
+        JsonNode choices = root.get("choices");
+        
+        if (choices != null && choices.isArray() && choices.size() > 0) {
+            JsonNode message = choices.get(0).get("message");
+            if (message != null && message.has("content")) {
+                return message.get("content").asText();
+            }
         }
-
-        return Flux.just(chunk)
-                .map(json -> {
-                    try {
-                        // Clean up JSON if needed
-                        String cleanJson = json.replace("data:", "").trim();
-                        JsonNode root = objectMapper.readTree(cleanJson);
-                        JsonNode choices = root.get("choices");
-                        if (choices != null && choices.isArray() && choices.size() > 0) {
-                            JsonNode delta = choices.get(0).get("delta");
-                            if (delta != null && delta.has("content")) {
-                                String content = delta.get("content").asText();
-                                if (content != null && !content.equals("null")) {
-                                    return content;
-                                }
-                            }
-                        }
-                        return "";
-                    } catch (Exception e) {
-                        return "";
-                    }
-                })
-                .filter(text -> !text.isEmpty());
+        
+        return "Could not generate reply.";
+    } catch (Exception e) {
+        log.error("Error parsing response: {}", e.getMessage());
+        return "Error parsing response.";
     }
     public boolean isAvailable(){return true;}
 }
