@@ -17,8 +17,7 @@ public class CorsConfig {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
         corsConfiguration.setAllowedOriginPatterns(Arrays.asList(
                 "chrome-extension://*",
-                "https://mail.google.com",
-                "http://localhost:*"
+                "https://mail.google.com"
         ));
 
         corsConfiguration.setAllowedMethods(Arrays.asList(
