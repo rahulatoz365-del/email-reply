@@ -1,96 +1,98 @@
-# Email Reply AI Service
+# 🧠 Email Reply AI Service (Backend)
 
-## Overview
+[![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](#)
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)](#)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](#)
+[![OpenRouter](https://img.shields.io/badge/AI_API-OpenRouter-black?style=for-the-badge)](#)
 
-A Spring Boot service that generates email replies using the OpenRouter AI API. It exposes simple REST endpoints for health checks, available tones, and reply generation.
-
-## Tech Stack
-
-- Java 21, Spring Boot
-- Spring WebClient (HTTP client)
-- Maven
-- Docker (optional)
+This is the backend REST API service that powers the **[Email Reply Chrome Extension](https://github.com/rahulatoz365-del/email-reply-frontend)**. Built with Java 21 and Spring Boot, it acts as the secure middleware between the browser extension and the OpenRouter AI API.
 
 ---
 
-## Quick Start (Initialization)
+## 📖 Overview
+
+To keep the Chrome extension lightweight and secure, all heavy lifting and AI integration is delegated to this Spring Boot backend. 
+
+When a user requests an email reply via the frontend, this service receives the context, formats a strict prompt, and asynchronously calls the OpenRouter API using Spring WebClient. It then processes the AI's response and returns a clean, ready-to-send draft back to the client.
+
+## ✨ Key Features
+
+* **AI Integration:** Seamlessly connects to various LLMs via the OpenRouter API.
+* **Non-Blocking I/O:** Utilizes Spring WebClient for efficient, reactive HTTP calls to external APIs.
+* **Context Formatting:** Handles prompt engineering dynamically based on the requested "tone" (e.g., professional, casual, direct).
+* **Containerized:** Includes a Dockerfile and `compose.yaml` for rapid, consistent deployment across environments.
+
+---
+
+## 🛠️ Technology Stack
+
+* **Language:** Java 21
+* **Framework:** Spring Boot
+* **HTTP Client:** Spring WebClient
+* **Build Tool:** Maven
+* **DevOps:** Docker
+
+---
+
+## 🚀 Getting Started
+
+Follow these steps to run the backend service locally.
 
 ### 1. Prerequisites
+* Java 21 (JDK) installed.
+* An active [OpenRouter API Key](https://openrouter.ai/).
+* Docker (Optional, but recommended).
 
-- Java 21 (JDK)
-- Maven (or use `mvnw` wrapper)
-- OpenRouter API key
-
-Set your API key as an environment variable:
-
+### 2. Environment Setup
+You must provide your OpenRouter API key to the application. Set it as an environment variable in your terminal:
 ```bash
+# On Linux/macOS
 export OPEN_API_KEY=your_openrouter_api_key
+
+# On Windows (Command Prompt)
+set OPEN_API_KEY=your_openrouter_api_key
+
+# On Windows (PowerShell)
+$env:OPEN_API_KEY="your_openrouter_api_key"
+
 ```
 
----
+### 3. Clone & Run (Using Maven)
 
-### 2. Clone the Repository
-
-```bash
-git clone https://github.com/your-org/email-reply-service.git
-cd email-reply-service
-```
-
----
-
-### 3. Run with Maven (Development)
-
-Build and run directly with Spring Boot:
+Clone the repository and use the included Maven wrapper to start the server:
 
 ```bash
+git clone [https://github.com/rahulatoz365-del/email-reply.git](https://github.com/rahulatoz365-del/email-reply.git)
+cd email-reply
+
+# Run the application
 ./mvnw spring-boot:run
-# or on Windows
-mvnw.cmd spring-boot:run
+
 ```
 
-The service starts on:
+The service will boot up and listen for requests on `http://localhost:8080`.
 
-```text
-http://localhost:8080
-```
+### 🐳 Alternative: Run via Docker
 
----
-
-### 4. Run Packaged JAR (Production-like)
-
-Build:
+If you prefer not to install Java/Maven locally, you can spin up the service using Docker:
 
 ```bash
-./mvnw clean package
-```
-
-Run:
-
-```bash
-java -jar target/email-reply-0.0.1-SNAPSHOT.jar
-```
-
----
-
-### 5. Run with Docker (Optional)
-
-Build image:
-
-```bash
+# Build the image
 docker build -t email-reply-service .
-```
 
-Run container:
-
-```bash
+# Run the container (Make sure to pass your API key!)
 docker run -p 8080:8080 -e OPEN_API_KEY=your_openrouter_api_key email-reply-service
+
 ```
 
 ---
 
-## Main Endpoints (Summary)
+## 📡 API Endpoints
 
-- `GET /api/email/health` – Basic health info
-- `GET /api/email/tones` – List available tones
-- `POST /api/email/generate` – Generate email reply
-```
+The service exposes the following main REST endpoints:
+
+* `GET /api/email/health` – Returns basic health and status information to ensure the service is running.
+* `GET /api/email/tones` – Fetches the list of available AI writing tones (e.g., Professional, Casual).
+* `POST /api/email/generate` – Accepts a JSON payload containing the original email context and desired tone, returning the AI-generated reply.
+
+*(Note: Ensure your frontend extension is configured to point to `http://localhost:8080` while developing locally.)*
